@@ -54,10 +54,15 @@ class GitBisector(ABC):
             with open(main_name, 'w') as f:
                 f.write(main_content)
         command = [sys.executable, sys.argv[0], 'example']
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        if main_is_missing:
-            print(f'Removing main file {main_name}')
-            os.remove(main_name)
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f'Error running subprocess: {e}')
+            raise
+        finally:
+            if main_is_missing:
+                print(f'Removing main file {main_name}')
+                os.remove(main_name)
         return result.stdout
 
 
