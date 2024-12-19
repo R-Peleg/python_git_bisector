@@ -58,6 +58,7 @@ class GitBisector(ABC):
             result = subprocess.run(command, capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
             print(f'Error running subprocess: {e}')
+            print(f'Stdout: {e.stdout}\nsterr: {e.stderr}')
             raise
         finally:
             if main_is_missing:
