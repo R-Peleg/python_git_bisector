@@ -104,6 +104,7 @@ class GitBisector(ABC):
                     raise ValueError("No change detected between commits")
         finally:
             # Return to the original commit
+            subprocess.run(['git', 'bisect', 'reset'], check=False)
             subprocess.run(['git', 'checkout', current_commit.stdout.strip()], check=True)
 
     def main(self) -> None:
