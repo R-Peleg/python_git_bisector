@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 setup(
     name='gitbi',
     version='0.1.0',
-    packages=find_packages('gitbi'),
+    packages=find_packages(exclude=('example', 'example.*')),
     install_requires=[
     ],
     author='Reuven Peleg',
@@ -12,7 +12,7 @@ setup(
     description='A tool for automating git bisect operations',
     long_description=open('README.md', 'r', encoding='utf-8').read() if os.path.exists('README.md') else '',
     long_description_content_type='text/markdown',
-    url='https://github.com/yourusername/your-repo',
+    url='https://github.com/R-Peleg/python_git_bisector',
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
