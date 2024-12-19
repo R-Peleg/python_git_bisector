@@ -87,8 +87,15 @@ class GitBisector(ABC):
         current_commit = subprocess.run(['git', 'rev-parse', 'HEAD'], 
                                         capture_output=True, text=True, check=True)
         main_name = sys.argv[0]
-        with open(main_name, 'r') as f:
-            main_content = f.read()
+        try:
+            file_size = os.path.getsize(main_name)
+            if file_size > 10 * 1024 * 1024:  # 10MB limit
+                raise ValueError(f"Main file too large: {file_size} bytes")
+            with open(main_name, 'r') as f:
+                main_content = f.read()
+        except (IOError, OSError) as e:
+            print(f'Failed to read main file: {e}')
+            raise
         try:
             # Checkout the start commit
             subprocess.run(['git', 'checkout', start_commit], check=True)
