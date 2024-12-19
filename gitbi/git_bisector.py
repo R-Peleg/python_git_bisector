@@ -37,7 +37,7 @@ class GitBisector(ABC):
         """
         pass
 
-    def get_example_in_subprocess(self) -> str:
+    def get_example_in_subprocess(self, main_name: str, main_content: str) -> str:
         """
         Run the example in a subprocess and return the output.
         
@@ -47,8 +47,14 @@ class GitBisector(ABC):
         Returns:
             str: The output of the example
         """
+        main_is_missing = not os.path.exists(main_name)
+        if main_is_missing:
+            with open(main_name, 'w') as f:
+                f.write(main_content)
         command = [sys.executable, sys.argv[0], 'example']
         result = subprocess.run(command, capture_output=True, text=True, check=True)
+        if main_is_missing:
+            os.remove(main_name)
         return result.stdout
 
 
@@ -71,12 +77,15 @@ class GitBisector(ABC):
         """
         current_commit = subprocess.run(['git', 'rev-parse', 'HEAD'], 
                                         capture_output=True, text=True, check=True)
+        main_name = sys.argv[0]
+        with open(main_name, 'r') as f:
+            main_content = f.read()
         try:
             # Checkout the start commit
             subprocess.run(['git', 'checkout', start_commit], check=True)
             
             # Run initial example
-            baseline_output = self.get_example_in_subprocess()
+            baseline_output = self.get_example_in_subprocess(main_name, main_content)
             
             # Set up git bisect
             subprocess.run(['git', 'bisect', 'start', end_commit, start_commit], check=True)
@@ -84,7 +93,7 @@ class GitBisector(ABC):
             # Perform the bisect
             for _ in range(MAX_ITERATIONS):
                 # Run the current example
-                current_output = self.get_example_in_subprocess()
+                current_output = self.get_example_in_subprocess(main_name, main_content)
                 
                 # Compare outputs
                 if self.are_outputs_identical(baseline_output, current_output):
