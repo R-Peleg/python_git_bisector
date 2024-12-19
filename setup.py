@@ -1,15 +1,16 @@
+import os
 from setuptools import setup, find_packages
 
 setup(
-    name='git_bisector',
+    name='gitbi',
     version='0.1.0',
     packages=find_packages('gitbi'),
     install_requires=[
-    ]
+    ],
     author='Reuven Peleg',
     author_email='your.email@example.com',
     description='A tool for automating git bisect operations',
-    long_description=open('README.md').read(),
+    long_description=open('README.md', 'r', encoding='utf-8').read() if os.path.exists('README.md') else '',
     long_description_content_type='text/markdown',
     url='https://github.com/yourusername/your-repo',
     classifiers=[
