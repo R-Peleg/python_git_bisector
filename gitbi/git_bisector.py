@@ -3,6 +3,8 @@ import argparse
 import subprocess
 import sys
 
+MAX_ITERATIONS = 1000
+
 class GitBisector(ABC):
     """
     Abstract base class for performing git bisect operations to detect code changes.
@@ -80,7 +82,7 @@ class GitBisector(ABC):
             subprocess.run(['git', 'bisect', 'start', end_commit, start_commit], check=True)
             
             # Perform the bisect
-            while True:
+            for _ in range(MAX_ITERATIONS):
                 # Run the current example
                 current_output = self.get_example_in_subprocess()
                 
@@ -102,6 +104,7 @@ class GitBisector(ABC):
                 
                 if 'There are no more revisions' in result.stdout:
                     raise ValueError("No change detected between commits")
+            print(f'Could not find a change in {MAX_ITERATIONS} iterations, potentially git bisect output changed')
         finally:
             # Return to the original commit
             subprocess.run(['git', 'bisect', 'reset'], check=False)
