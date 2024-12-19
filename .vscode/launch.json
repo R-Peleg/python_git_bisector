@@ -8,7 +8,7 @@
             "name": "Bisector",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}\\example\\foo_bisector.py",
+            "program": "${workspaceFolder}/example/foo_bisector.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import os
 import argparse
 import subprocess
 import sys
@@ -37,7 +38,7 @@ class GitBisector(ABC):
         """
         pass
 
-    def get_example_in_subprocess(self) -> str:
+    def get_example_in_subprocess(self, main_name: str, main_content: str) -> str:
         """
         Run the example in a subprocess and return the output.
         
@@ -47,8 +48,25 @@ class GitBisector(ABC):
         Returns:
             str: The output of the example
         """
+        main_is_missing = not os.path.exists(main_name)
+        if main_is_missing:
+            print(f'Writing main file to {main_name}')
+            with open(main_name, 'w') as f:
+                f.write(main_content)
         command = [sys.executable, sys.argv[0], 'example']
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f'Error running subprocess: {e}')
+            print(f'Stdout: {e.stdout}\nsterr: {e.stderr}')
+            raise
+        finally:
+            if main_is_missing:
+                print(f'Removing main file {main_name}')
+                try:
+                    os.remove(main_name)
+                except OSError as e:
+                    print(f'Warning: Failed to remove temporary file {main_name}: {e}')
         return result.stdout
 
 
@@ -71,12 +89,22 @@ class GitBisector(ABC):
         """
         current_commit = subprocess.run(['git', 'rev-parse', 'HEAD'], 
                                         capture_output=True, text=True, check=True)
+        main_name = sys.argv[0]
+        try:
+            file_size = os.path.getsize(main_name)
+            if file_size > 10 * 1024 * 1024:  # 10MB limit
+                raise ValueError(f"Main file too large: {file_size} bytes")
+            with open(main_name, 'r') as f:
+                main_content = f.read()
+        except (IOError, OSError) as e:
+            print(f'Failed to read main file: {e}')
+            raise
         try:
             # Checkout the start commit
             subprocess.run(['git', 'checkout', start_commit], check=True)
             
             # Run initial example
-            baseline_output = self.get_example_in_subprocess()
+            baseline_output = self.get_example_in_subprocess(main_name, main_content)
             
             # Set up git bisect
             subprocess.run(['git', 'bisect', 'start', end_commit, start_commit], check=True)
@@ -84,7 +112,7 @@ class GitBisector(ABC):
             # Perform the bisect
             for _ in range(MAX_ITERATIONS):
                 # Run the current example
-                current_output = self.get_example_in_subprocess()
+                current_output = self.get_example_in_subprocess(main_name, main_content)
                 
                 # Compare outputs
                 if self.are_outputs_identical(baseline_output, current_output):
