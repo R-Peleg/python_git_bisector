@@ -63,7 +63,10 @@ class GitBisector(ABC):
         finally:
             if main_is_missing:
                 print(f'Removing main file {main_name}')
-                os.remove(main_name)
+                try:
+                    os.remove(main_name)
+                except OSError as e:
+                    print(f'Warning: Failed to remove temporary file {main_name}: {e}')
         return result.stdout
 
 
