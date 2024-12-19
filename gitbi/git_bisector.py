@@ -82,7 +82,7 @@ class GitBisector(ABC):
             subprocess.run(['git', 'bisect', 'start', end_commit, start_commit], check=True)
             
             # Perform the bisect
-            for _ in MAX_ITERATIONS:
+            for _ in range(MAX_ITERATIONS):
                 # Run the current example
                 current_output = self.get_example_in_subprocess()
                 
