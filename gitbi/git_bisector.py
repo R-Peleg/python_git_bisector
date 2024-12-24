@@ -108,12 +108,18 @@ class GitBisector(ABC):
             print(f'Failed to read main file: {e}')
             raise
         try:
-            # Checkout the start commit
-            subprocess.run(['git', 'checkout', start_commit], check=True)
-            
             # Run initial example
+            subprocess.run(['git', 'checkout', start_commit], check=True)
             baseline_output = self.get_example_in_subprocess(main_name, main_content)
             
+            # Run the end commit example
+            subprocess.run(['git', 'checkout', end_commit], check=True)
+            final_output = self.get_example_in_subprocess(main_name, main_content)
+
+            if self.are_outputs_identical(baseline_output, final_output):
+                print('No change detected between start and end commits')
+                return None
+
             # Set up git bisect
             subprocess.run(['git', 'bisect', 'start'], check=True)
             subprocess.run(['git', 'bisect', 'good', start_commit], check=True)
@@ -130,6 +136,11 @@ class GitBisector(ABC):
                     result = subprocess.run(['git', 'bisect', 'good'], 
                                             capture_output=True, text=True)
                 else:
+                    if not self.are_outputs_identical(final_output, current_output):
+                        current_commit_hash = subprocess.run(
+                            ['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True)
+                        print(f'Warning: output at {current_commit_hash} is different '
+                              f'from both start and end commits')
                     # Output has changed, mark as bad
                     result = subprocess.run(['git', 'bisect', 'bad'], 
                                             capture_output=True, text=True)
