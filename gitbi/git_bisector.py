@@ -131,30 +131,32 @@ class GitBisector(ABC):
                 subprocess.run(['git', 'bisect', 'good', start_commit], check=True)
                 subprocess.run(['git', 'bisect', 'bad', end_commit], check=True)
                 
-                # Compare outputs
-                if self.are_outputs_identical(baseline_output, current_output):
-                    # Output is the same, continue bisecting
-                    result = subprocess.run(['git', 'bisect', 'good'], 
-                                            capture_output=True, text=True)
-                else:
-                    if not self.are_outputs_identical(final_output, current_output):
-                        current_commit_hash = subprocess.run(
-                            ['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True)
-                        commit_hash_str = current_commit_hash.stdout.strip()
-                        print(f'Warning: output at {commit_hash_str} is different '
-                              f'from both start and end commits')
-                    # Output has changed, mark as bad
-                    result = subprocess.run(['git', 'bisect', 'bad'], 
-                                            capture_output=True, text=True)
-                
-                # Check if bisect is complete
-                if 'is the first bad commit' in result.stdout:
-                    # Extract the commit hash
-                    commit_match = result.stdout.split('\n')[0].split(':')[0].strip()
-                    return commit_match
-                
-                if 'There are no more revisions' in result.stdout:
-                    raise ValueError("No change detected between commits")
+                for _ in range(MAX_ITERATIONS):
+                    # Compare outputs
+                    if self.are_outputs_identical(baseline_output, current_output):
+                        # Output is the same, continue bisecting
+                        result = subprocess.run(['git', 'bisect', 'good'], 
+                                                capture_output=True, text=True)
+                    else:
+                        if not self.are_outputs_identical(final_output, current_output):
+                            current_commit_hash = subprocess.run(
+                                ['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True)
+                            commit_hash_str = current_commit_hash.stdout.strip()
+                            print(f'Warning: output at {commit_hash_str} is different '
+                                f'from both start and end commits')
+                        # Output has changed, mark as bad
+                        result = subprocess.run(['git', 'bisect', 'bad'], 
+                                                capture_output=True, text=True)
+                    
+                    # Check if bisect is complete
+                    if 'is the first bad commit' in result.stdout:
+                        # Extract the commit hash
+                        commit_match = result.stdout.split('\n')[0].split(':')[0].strip()
+                        return commit_match
+                    
+                    if 'There are no more revisions' in result.stdout:
+                        print("No change detected between commits")
+                        return None
             print(f'Could not find a change in {MAX_ITERATIONS} iterations, potentially git bisect output changed')
         finally:
             # Return to the original commit
