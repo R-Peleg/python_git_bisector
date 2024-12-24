@@ -139,7 +139,8 @@ class GitBisector(ABC):
                     if not self.are_outputs_identical(final_output, current_output):
                         current_commit_hash = subprocess.run(
                             ['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True)
-                        print(f'Warning: output at {current_commit_hash} is different '
+                        commit_hash_str = current_commit_hash.stdout.strip()
+                        print(f'Warning: output at {commit_hash_str} is different '
                               f'from both start and end commits')
                     # Output has changed, mark as bad
                     result = subprocess.run(['git', 'bisect', 'bad'], 
