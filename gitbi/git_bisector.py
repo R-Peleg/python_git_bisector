@@ -3,6 +3,7 @@ import os
 import argparse
 import subprocess
 import sys
+import time
 
 MAX_ITERATIONS = 1000
 
@@ -48,6 +49,9 @@ class GitBisector(ABC):
         Returns:
             str: The output of the example
         """
+        print('Getting example in subprocess')
+        start_time = time.time()
+
         main_is_missing = not os.path.exists(main_name)
         if main_is_missing:
             print(f'Writing main file to {main_name}')
@@ -67,6 +71,10 @@ class GitBisector(ABC):
                     os.remove(main_name)
                 except OSError as e:
                     print(f'Warning: Failed to remove temporary file {main_name}: {e}')
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f'Got output length {len(result.stdout)}. '
+                f'Subprocess execution time: {execution_time:.2f} seconds')
         return result.stdout
 
 
