@@ -115,7 +115,9 @@ class GitBisector(ABC):
             baseline_output = self.get_example_in_subprocess(main_name, main_content)
             
             # Set up git bisect
-            subprocess.run(['git', 'bisect', 'start', end_commit, start_commit], check=True)
+            subprocess.run(['git', 'bisect', 'start'], check=True)
+            subprocess.run(['git', 'bisect', 'good', start_commit], check=True)
+            subprocess.run(['git', 'bisect', 'bad', end_commit], check=True)
             
             # Perform the bisect
             for _ in range(MAX_ITERATIONS):
