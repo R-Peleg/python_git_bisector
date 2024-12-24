@@ -6,7 +6,7 @@ from example.foo import foo
 
 
 class FooBisector(GitBisector):
-    def get_output(self) -> str:
+    def get_output(self, cache_dir: Optiona[str] = None) -> str:
         return foo()
 
     def are_outputs_identical(self, output1: str, output2: str) -> bool:

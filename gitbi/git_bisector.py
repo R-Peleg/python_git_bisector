@@ -1,9 +1,11 @@
+from typing import Optional
 from abc import ABC, abstractmethod
 import os
 import argparse
 import subprocess
 import sys
 import time
+import tempfile
 
 MAX_ITERATIONS = 1000
 
@@ -13,7 +15,7 @@ class GitBisector(ABC):
     """
 
     @abstractmethod
-    def get_output(self) -> str:
+    def get_output(self, cache_dir: Optional[str] = None) -> str:
         """
         Get a single example output.
         
@@ -39,7 +41,8 @@ class GitBisector(ABC):
         """
         pass
 
-    def get_example_in_subprocess(self, main_name: str, main_content: str) -> str:
+    def get_example_in_subprocess(self, main_name: str, main_content: str,
+                                  cache_dir: Optional[str] = None) -> str:
         """
         Run the example in a subprocess and return the output.
         
@@ -58,6 +61,8 @@ class GitBisector(ABC):
             with open(main_name, 'w') as f:
                 f.write(main_content)
         command = [sys.executable, sys.argv[0], 'example']
+        if cache_dir is not None:
+            command.extend(['--cache-dir', cache_dir])
         try:
             result = subprocess.run(command, capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
@@ -108,27 +113,23 @@ class GitBisector(ABC):
             print(f'Failed to read main file: {e}')
             raise
         try:
-            # Run initial example
-            subprocess.run(['git', 'checkout', start_commit], check=True)
-            baseline_output = self.get_example_in_subprocess(main_name, main_content)
-            
-            # Run the end commit example
-            subprocess.run(['git', 'checkout', end_commit], check=True)
-            final_output = self.get_example_in_subprocess(main_name, main_content)
+            with tempfile.TemporaryDirectory() as cache_dir:
+                # Run initial example
+                subprocess.run(['git', 'checkout', start_commit], check=True)
+                baseline_output = self.get_example_in_subprocess(main_name, main_content, cache_dir)
+                
+                # Run the end commit example
+                subprocess.run(['git', 'checkout', end_commit], check=True)
+                final_output = self.get_example_in_subprocess(main_name, main_content, cache_dir)
 
-            if self.are_outputs_identical(baseline_output, final_output):
-                print('No change detected between start and end commits')
-                return None
+                if self.are_outputs_identical(baseline_output, final_output):
+                    print('No change detected between start and end commits')
+                    return None
 
-            # Set up git bisect
-            subprocess.run(['git', 'bisect', 'start'], check=True)
-            subprocess.run(['git', 'bisect', 'good', start_commit], check=True)
-            subprocess.run(['git', 'bisect', 'bad', end_commit], check=True)
-            
-            # Perform the bisect
-            for _ in range(MAX_ITERATIONS):
-                # Run the current example
-                current_output = self.get_example_in_subprocess(main_name, main_content)
+                # Set up git bisect
+                subprocess.run(['git', 'bisect', 'start'], check=True)
+                subprocess.run(['git', 'bisect', 'good', start_commit], check=True)
+                subprocess.run(['git', 'bisect', 'bad', end_commit], check=True)
                 
                 # Compare outputs
                 if self.are_outputs_identical(baseline_output, current_output):
@@ -182,6 +183,9 @@ class GitBisector(ABC):
         
         # Example mode
         example_parser = subparsers.add_parser('example', help='Run example')
+        example_parser.add_argument('--cache-dir', type=str, 
+                                    help='Directory to cache example files',
+                                    required=False, default=None)
         example_parser.add_argument('--extra-args', 
                                 help='Extra arguments to pass to the example command (comma-separated)',
                                 default=None)
@@ -199,7 +203,7 @@ class GitBisector(ABC):
         
         elif args.mode == 'example':
             # Run example
-            output = self.get_output()
+            output = self.get_output(args.cache_dir)
             print(output)
 
         else:
