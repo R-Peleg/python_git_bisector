@@ -132,6 +132,9 @@ class GitBisector(ABC):
                 subprocess.run(['git', 'bisect', 'bad', end_commit], check=True)
                 
                 for _ in range(MAX_ITERATIONS):
+                    # Get output for current commit
+                    current_output = self.get_example_in_subprocess(main_name, main_content, cache_dir)
+
                     # Compare outputs
                     if self.are_outputs_identical(baseline_output, current_output):
                         # Output is the same, continue bisecting
