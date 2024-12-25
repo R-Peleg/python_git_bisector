@@ -58,6 +58,7 @@ class GitBisector(ABC):
         main_is_missing = not os.path.exists(main_name)
         if main_is_missing:
             print(f'Writing main file to {main_name}')
+            os.makedirs(os.path.dirname(main_name), exist_ok=True)
             with open(main_name, 'w') as f:
                 f.write(main_content)
         command = [sys.executable, sys.argv[0], 'example']
